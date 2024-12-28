@@ -24,5 +24,8 @@ func main() {
 		}
 
 		fmt.Printf("Message from server: %s", status)
+
+		// Close connection when this function ends
+		defer conn.Close()
 	}
 }

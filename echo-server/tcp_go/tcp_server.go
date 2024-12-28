@@ -10,6 +10,7 @@ import (
 )
 
 func handleConnection(c net.Conn) {
+
 	fmt.Printf("Serveing %s\n", c.RemoteAddr().String())
 
 	for {
@@ -29,6 +30,8 @@ func handleConnection(c net.Conn) {
 		c.Write([]byte(temp + "\n"))
 	}
 
+	// Close connection when this function ends
+	defer c.Close()
 }
 
 func main() {
