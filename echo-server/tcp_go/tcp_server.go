@@ -1,53 +1,49 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"io"
 	"log"
 	"net"
-	"strings"
+	_ "net/http/pprof"
 )
 
-func handleConnection(c net.Conn) {
+func main() {
 
-	fmt.Printf("Serveing %s\n", c.RemoteAddr().String())
+	ln, err := net.Listen("tcp", ":8972")
+	if err != nil {
+		panic(err)
+	}
+
+	var connections []net.Conn
+
+	defer func() {
+		for _, conn := range connections {
+			conn.Close()
+		}
+	}()
 
 	for {
-		netData, err := bufio.NewReader(c).ReadString('\n')
-
-		if err != nil {
-			if err == io.EOF {
-				fmt.Println("Connection closed")
-				break
+		conn, e := ln.Accept()
+		if e != nil {
+			if ne, ok := e.(net.Error); ok && ne.Temporary() {
+				log.Printf("accept temp err: %v", ne)
+				continue
 			}
-			log.Fatal(err)
+
+			log.Printf("accept err: %v", e)
 			return
 		}
 
-		temp := strings.TrimSpace(netData)
+		go handleConn(conn)
 
-		c.Write([]byte(temp + "\n"))
+		connections = append(connections, conn)
+
+		if len(connections)%100 == 0 {
+			log.Printf("total number of connections: %v", len(connections))
+		}
 	}
-
-	// Close connection when this function ends
-	defer c.Close()
 }
 
-func main() {
-	ln, err := net.Listen("tcp", ":8080")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		conn, err := ln.Accept()
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		go handleConnection(conn)
-	}
+func handleConn(conn net.Conn) {
+	io.Copy(io.Discard, conn)
 }

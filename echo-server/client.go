@@ -1,31 +1,70 @@
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"net"
+	"syscall"
+	"time"
+)
+
+var (
+	ip          = flag.String("ip", "127.0.0.1", "server IP")
+	connections = flag.Int("conn", 1_000_000, "number of tcp connections")
 )
 
 func main() {
+	flag.Parse()
 
-	for i := 0; i < 100_000; i++ {
-		conn, err := net.Dial("tcp", "localhost:8080")
+	setLimit()
 
+	addr := *ip + ":8972"
+	log.Printf("Connect to %s", addr)
+
+	var conns []net.Conn
+
+	for i := 0; i < *connections; i++ {
+		c, err := net.DialTimeout("tcp", addr, 10*time.Second)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("failed to connect", i, err)
+			i--
+			continue
 		}
-		fmt.Fprintf(conn, "Hello, Server\n")
+		conns = append(conns, c)
+		time.Sleep(time.Millisecond)
+	}
 
-		status, err := bufio.NewReader(conn).ReadString('\n')
-
-		if err != nil {
-			log.Fatal(err)
+	defer func() {
+		for _, c := range conns {
+			c.Close()
 		}
+	}()
 
-		fmt.Printf("Message from server: %s", status)
+	log.Printf("Total %d connections are established", len(conns))
 
-		// Close connection when this function ends
-		defer conn.Close()
+	tts := time.Second
+	if *connections > 100 {
+		tts = time.Millisecond * 5
+	}
+
+	for {
+		for i := 0; i < len(conns); i++ {
+			time.Sleep(tts)
+			conn := conns[i]
+
+			conn.Write([]byte("hello world\r\n"))
+		}
+	}
+}
+
+func setLimit() {
+	var rLimit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		panic(err)
+	}
+	rLimit.Cur = rLimit.Max
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		panic(err)
 	}
 }
