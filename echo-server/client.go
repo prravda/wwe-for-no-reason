@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	ip          = flag.String("ip", "127.0.0.1", "server IP")
-	connections = flag.Int("conn", 1_000_000, "number of tcp connections")
+	ip = flag.String("ip", "tcp_server", "server IP")
+	//ip          = flag.String("ip", "localhost", "server IP")
+	connections = flag.Int("conn", 10_000, "number of tcp connections")
 )
 
 func main() {

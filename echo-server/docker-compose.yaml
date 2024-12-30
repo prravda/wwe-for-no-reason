@@ -1,0 +1,22 @@
+services:
+  tcp_server:
+    build:
+        context: ./tcp_go
+        dockerfile: Dockerfile
+    sysctls:
+        - net.core.somaxconn=32768
+    container_name: tcp_server
+    ports:
+      - "8972:8972"
+
+  client:
+    build:
+        context: .
+        dockerfile: ./Dockerfile
+    sysctls:
+      - net.core.somaxconn=2048
+    deploy:
+      mode: replicated
+      replicas: 100
+    depends_on:
+      - tcp_server

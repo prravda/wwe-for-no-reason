@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
 	_ "net/http/pprof"
+	"syscall"
 )
 
 func main() {
+	checkKernelParam()
 
 	ln, err := net.Listen("tcp", ":8972")
 	if err != nil {
@@ -46,4 +49,9 @@ func main() {
 
 func handleConn(conn net.Conn) {
 	io.Copy(io.Discard, conn)
+}
+
+func checkKernelParam() {
+	// see SOMMAXCONN
+	fmt.Println("Currnet SOMAXCONN: ", syscall.SOMAXCONN)
 }
